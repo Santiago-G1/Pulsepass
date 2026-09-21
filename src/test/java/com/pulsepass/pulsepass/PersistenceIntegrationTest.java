@@ -103,6 +103,16 @@ class PersistenceIntegrationTest {
     }
 
     @Test
+    void allowsNullableStreamingUrl() {
+	Venue venue = venueRepository.save(new Venue(
+		"VEN-STREAM-01", "Streaming Hall", "Santa Marta", "Calle 14", 1000, true));
+	Event event = eventRepository.saveAndFlush(event("STREAM-2026", "Streaming Event", venue,
+		EventStatus.PUBLISHED, LocalDateTime.of(2026, 12, 2, 18, 0)));
+
+	assertThat(event.getStreamingUrl()).isNull();
+    }
+
+    @Test
     void persistsManyToManyArtistsWithoutDuplicateAssociation() {
 	Venue venue = venueRepository.save(new Venue(
 		"VEN-ART-01", "Music Hall", "Santa Marta", "Calle 1", 1000, true));
@@ -219,6 +229,49 @@ class PersistenceIntegrationTest {
 
 	assertThatThrownBy(() -> venueRepository.saveAndFlush(new Venue(
 		"VEN-DUP-01", "Two", "Santa Marta", "Calle 5", 100, true)))
+		.isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void databaseRejectsDuplicateArtistStageName() {
+	Artist original = artistRepository.findByStageName("Solar Beat").orElseThrow();
+
+	assertThatThrownBy(() -> artistRepository.saveAndFlush(new Artist(
+		original.getStageName(), "Colombia", "Electronic", true)))
+		.isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void databaseRejectsDuplicateUsername() {
+	userRepository.saveAndFlush(new User("unique-user", "first@example.com", true));
+
+	assertThatThrownBy(() -> userRepository.saveAndFlush(
+		new User("unique-user", "second@example.com", true)))
+		.isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void databaseRejectsDuplicateEmail() {
+	userRepository.saveAndFlush(new User("first-user", "unique@example.com", true));
+
+	assertThatThrownBy(() -> userRepository.saveAndFlush(
+		new User("second-user", "unique@example.com", true)))
+		.isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void databaseRejectsDuplicateEventArtistAssociation() {
+	Venue venue = venueRepository.save(new Venue(
+		"VEN-DUP-ARTISTS", "Association Hall", "Santa Marta", "Calle 15", 1000, true));
+	Artist artist = artistRepository.findByStageName("Solar Beat").orElseThrow();
+	Event event = event("DUP-ARTIST", "Duplicate Association Event", venue,
+		EventStatus.PUBLISHED, LocalDateTime.of(2026, 12, 24, 18, 0));
+	event.addArtist(artist);
+	eventRepository.saveAndFlush(event);
+
+	assertThatThrownBy(() -> jdbcTemplate.update(
+		"insert into event_artists (event_id, artist_id) values (?, ?)",
+		event.getId(), artist.getId()))
 		.isInstanceOf(DataIntegrityViolationException.class);
     }
 

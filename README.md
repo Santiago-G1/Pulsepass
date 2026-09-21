@@ -52,7 +52,7 @@ DeepBlue Rescue: `com.<proyecto>.<proyecto>`.
 
 ## Ejecucion
 
-Configura PostgreSQL o define `PULSEPASS_DB_URL`, `PULSEPASS_DB_USERNAME` y `PULSEPASS_DB_PASSWORD`. Luego ejecuta:
+Configura PostgreSQL o define `DB_URL`, `DB_USER` y `DB_PASSWORD`. Luego ejecuta:
 
 ```bash
 ./mvnw clean test
