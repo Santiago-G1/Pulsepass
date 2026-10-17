@@ -73,7 +73,7 @@ class PersistenceIntegrationTest {
 	List<String> versions = jdbcTemplate.queryForList(
 		"select version from flyway_schema_history order by installed_rank", String.class);
 
-	assertThat(versions).containsExactly("1", "2", "3");
+	assertThat(versions).containsExactly("1", "2", "3", "4");
 	assertThat(jdbcTemplate.queryForObject("select count(*) from artists", Integer.class))
 		.isEqualTo(5);
     }

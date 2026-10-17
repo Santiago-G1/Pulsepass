@@ -19,3 +19,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+pulsepass:
+  jwt:
+    secret-base64: ${PULSEPASS_JWT_SECRET_BASE64:TWVkaW9uZ2xvYmFsQmFzZTY0U2VjcmV0U2VjdXJpdHlLZXk=}
+    issuer: pulsepass-api
+    expiration-seconds: 900
