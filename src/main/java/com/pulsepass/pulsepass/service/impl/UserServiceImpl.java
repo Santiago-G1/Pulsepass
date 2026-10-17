@@ -1,6 +1,8 @@
 package com.pulsepass.pulsepass.service.impl;
 
+import com.pulsepass.pulsepass.domain.Role;
 import com.pulsepass.pulsepass.domain.User;
+import com.pulsepass.pulsepass.domain.UserCredential;
 import com.pulsepass.pulsepass.domain.UserProfile;
 import com.pulsepass.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.pulsepass.dto.response.UserResponse;
@@ -11,6 +13,8 @@ import com.pulsepass.pulsepass.mapper.UserMapper;
 import com.pulsepass.pulsepass.repository.UserRepository;
 import com.pulsepass.pulsepass.service.UserService;
 import java.time.LocalDate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +23,18 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UserServiceImpl(UserRepository userRepository, UserMapper userMapper) {
+        this(userRepository, userMapper, new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder());
+    }
+
+    @Autowired
+    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -41,10 +53,19 @@ public class UserServiceImpl implements UserService {
         if (request.birthDate() == null || request.birthDate().isAfter(LocalDate.now())) {
             throw new BusinessRuleException("Birth date cannot be in the future.");
         }
+        if (request.password() != null && !request.password().isBlank()) {
+            if (request.password().length() < 12 || request.password().length() > 72) {
+                throw new BusinessRuleException("Password must be between 12 and 72 characters.");
+            }
+        }
 
         User user = new User(request.username(), request.email(), true);
         user.assignProfile(new UserProfile(request.firstName(), request.lastName(),
                 request.phone(), request.city(), request.birthDate(), user));
+        if (request.password() != null && !request.password().isBlank()) {
+            user.addRole(Role.USER);
+            user.setCredential(new UserCredential(user, passwordEncoder.encode(request.password())));
+        }
         return userMapper.toResponse(userRepository.save(user));
     }
 
