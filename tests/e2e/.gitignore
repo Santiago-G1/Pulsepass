@@ -1,0 +1,20 @@
+# Exportaciones locales de Postman que puedan contener tokens o contraseñas.
+# La plantilla PulsePass-local.postman_environment.json SÍ se versiona (sin secretos);
+# cualquier export con valores reales debe quedar fuera del repositorio.
+postman/*.secret.json
+postman/*-filled*.json
+postman/*.exported.json
+
+# Evidencias locales de la ejecución (capturas, JSON de respuestas, tokens).
+evidencias/
+capturas/
+respuestas/
+
+# Archivos de secretos y variables de entorno locales.
+*.token
+*.secrets
+.env
+.env.*
+
+# Bitácora diligenciada con datos de una ejecución real, si se prefiere no versionarla.
+registro-ejecucion-*.local.md
