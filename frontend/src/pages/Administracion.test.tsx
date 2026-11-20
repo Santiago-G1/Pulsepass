@@ -88,7 +88,7 @@ describe('crear evento', () => {
     await user.click(screen.getByRole('button', { name: 'Crear evento' }))
 
     expect(
-      await screen.findByText(/eventCode: El código ya existe\./),
+      await screen.findByText('El código ya existe.'),
     ).toBeInTheDocument()
   })
 })

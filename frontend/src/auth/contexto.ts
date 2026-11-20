@@ -9,8 +9,9 @@ export type EstadoSesion =
 
 export interface AuthContextValue {
   sesion: EstadoSesion
+  motivoSesionExpirada: boolean
   iniciar: (identifier: string, password: string) => Promise<void>
-  cerrar: () => void
+  cerrar: (motivo?: 'expirada') => void
   reintentar: () => void
 }
 

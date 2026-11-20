@@ -30,7 +30,10 @@ const RegistroSchema = z.object({
 })
 type RegistroValues = z.infer<typeof RegistroSchema>
 
-const MensajeLocationSchema = z.object({ mensaje: z.string().optional() })
+const MensajeLocationSchema = z.object({
+  mensaje: z.string().optional(),
+  motivo: z.enum(['expirada']).optional(),
+})
 const DesdeSchema = z.object({ pathname: z.string().startsWith('/') }).passthrough()
 
 export function Login() {
@@ -89,7 +92,7 @@ export function Login() {
 export function Registro() {
   const navigate = useNavigate()
   const [errorApi, setErrorApi] = useState('')
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegistroValues>({
+  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<RegistroValues>({
     resolver: zodResolver(RegistroSchema),
   })
 
@@ -103,9 +106,15 @@ export function Registro() {
       })
     } catch (error: unknown) {
       if (error instanceof ApiError && error.status === 400) {
-        const campos = Object.entries(error.details)
-        const noMapeados = campos.map(([campo, mensaje]) => `${campo}: ${mensaje}`).join(' · ')
-        setErrorApi(noMapeados || error.message)
+        const nombresCampos = new Set(['username', 'email', 'firstName', 'lastName', 'birthDate', 'password'])
+        const camposMapeados: string[] = []
+        for (const [campo, mensaje] of Object.entries(error.details)) {
+          if (nombresCampos.has(campo)) {
+            setError(campo as keyof RegistroValues, { type: 'server', message: mensaje })
+            camposMapeados.push(campo)
+          }
+        }
+        setErrorApi(camposMapeados.length === 0 ? error.message : '')
       } else if (error instanceof ApiError && error.status === 409) {
         setErrorApi('No fue posible crear la cuenta con estos datos. Verifica si el usuario o correo ya existe.')
       } else {

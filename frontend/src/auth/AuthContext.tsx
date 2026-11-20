@@ -13,10 +13,12 @@ import { AuthContext, type EstadoSesion } from './contexto'
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [sesion, setSesion] = useState<EstadoSesion>({ estado: 'cargando' })
+  const [motivoSesionExpirada, setMotivoSesionExpirada] = useState(false)
 
-  const cerrar = useCallback(() => {
+  const cerrar = useCallback((motivo?: 'expirada') => {
     clearTokenSession()
     queryClient.clear()
+    setMotivoSesionExpirada(motivo === 'expirada')
     setSesion({ estado: 'anonimo' })
   }, [queryClient])
 
@@ -35,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSesion({ estado: 'autenticado', usuario })
     } catch (error: unknown) {
       if (error instanceof Error && 'status' in error && error.status === 401) {
-        cerrar()
+        cerrar('expirada')
         return
       }
       setSesion({
@@ -47,10 +49,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void cargarSesion()
-    const onUnauthorized = () => cerrar()
+    const onUnauthorized = () => cerrar('expirada')
     window.addEventListener('pulsepass:unauthorized', onUnauthorized)
     return () => window.removeEventListener('pulsepass:unauthorized', onUnauthorized)
   }, [cargarSesion, cerrar])
+
+  useEffect(() => {
+    if (sesion.estado !== 'autenticado') return
+    const tokenSession = readTokenSession()
+    if (!tokenSession) {
+      cerrar('expirada')
+      return
+    }
+    const timeout = window.setTimeout(
+      () => cerrar('expirada'),
+      Math.max(0, tokenSession.expiresAt - Date.now()),
+    )
+    return () => window.clearTimeout(timeout)
+  }, [sesion, cerrar])
 
   const iniciar = useCallback(
     async (identifier: string, password: string) => {
@@ -71,8 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ sesion, iniciar, cerrar, reintentar: () => void cargarSesion() }),
-    [sesion, iniciar, cerrar, cargarSesion],
+    () => ({
+      sesion,
+      motivoSesionExpirada,
+      iniciar,
+      cerrar,
+      reintentar: () => void cargarSesion(),
+    }),
+    [sesion, motivoSesionExpirada, iniciar, cerrar, cargarSesion],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

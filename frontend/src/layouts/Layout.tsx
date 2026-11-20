@@ -24,10 +24,24 @@ const enlacesRol: Record<Rol, { texto: string; href: string }[]> = {
 export function Layout() {
   const { sesion, cerrar } = useAuth()
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [oscuro, setOscuro] = useState(false)
+  const [oscuro, setOscuro] = useState(() => {
+    try {
+      const guardado = window.localStorage?.getItem('pulsepass.theme')
+      if (guardado === 'dark') return true
+      if (guardado === 'light') return false
+      return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', oscuro)
+    try {
+      window.localStorage?.setItem('pulsepass.theme', oscuro ? 'dark' : 'light')
+    } catch {
+      // El tema sigue funcionando aunque el navegador bloquee storage.
+    }
   }, [oscuro])
 
   const rol = sesion.estado === 'autenticado' ? sesion.usuario.roles[0] : undefined
@@ -85,7 +99,7 @@ export function Layout() {
                 <span className="max-w-32 truncate text-sm font-semibold">
                   {sesion.usuario.firstName ?? sesion.usuario.username}
                 </span>
-                <Boton variante="fantasma" onClick={cerrar}>Salir</Boton>
+                <Boton variante="fantasma" onClick={() => cerrar()}>Salir</Boton>
               </div>
             ) : (
               <>

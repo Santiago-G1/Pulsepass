@@ -5,14 +5,24 @@ import { useAuth } from '../auth/contexto'
 import { Cargando, EstadoError } from '../componentes/ui'
 
 export function RutaProtegida() {
-  const { sesion, reintentar } = useAuth()
+  const { sesion, reintentar, motivoSesionExpirada } = useAuth()
   const location = useLocation()
   if (sesion.estado === 'cargando') return <Cargando mensaje="Verificando sesión…" />
   if (sesion.estado === 'error') {
     return <EstadoError mensaje={sesion.mensaje} onReintentar={reintentar} />
   }
   if (sesion.estado === 'anonimo') {
-    return <Navigate to={RUTAS.login} replace state={{ desde: location }} />
+    return (
+      <Navigate
+        to={RUTAS.login}
+        replace
+        state={{
+          desde: location,
+          mensaje: motivoSesionExpirada ? 'Tu sesión expiró. Inicia sesión de nuevo.' : undefined,
+          motivo: motivoSesionExpirada ? 'expirada' : undefined,
+        }}
+      />
+    )
   }
   return <Outlet />
 }

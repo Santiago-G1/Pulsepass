@@ -148,4 +148,26 @@ describe('autenticación', () => {
     )
     expect(aviso).not.toHaveTextContent('id 42')
   })
+
+  it('mapea los details del 400 al campo de registro correspondiente', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${API}/users`, () =>
+        errorRespuesta(400, 'Datos inválidos', {
+          email: 'Este correo no está disponible.',
+        }),
+      ),
+    )
+    renderConProveedores(rutas, { initialEntries: ['/registro'] })
+
+    await user.type(await screen.findByLabelText('Nombre de usuario'), 'andrea')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'andrea@pulsepass.test')
+    await user.type(screen.getByLabelText('Nombres'), 'Andrea')
+    await user.type(screen.getByLabelText('Apellidos'), 'Gómez')
+    await user.type(screen.getByLabelText('Fecha de nacimiento'), '1998-02-03')
+    await user.type(screen.getByLabelText('Contraseña'), 'contrasena-larga')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(await screen.findByText('Este correo no está disponible.')).toBeInTheDocument()
+  })
 })

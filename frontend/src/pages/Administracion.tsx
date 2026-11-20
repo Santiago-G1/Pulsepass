@@ -117,7 +117,7 @@ export function AdminCrearEvento() {
   const crear = useCrearEvento()
   const navigate = useNavigate()
   const [errorApi, setErrorApi] = useState('')
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CrearEventoValues>({
+  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<CrearEventoValues>({
     resolver: zodResolver(CrearEventoSchema),
     defaultValues: { description: '', category: 'MUSIC', minimumAge: 0 },
   })
@@ -132,7 +132,15 @@ export function AdminCrearEvento() {
       })
     } catch (error: unknown) {
       if (error instanceof ApiError && error.status === 400 && Object.keys(error.details).length > 0) {
-        setErrorApi(Object.entries(error.details).map(([field, message]) => `${field}: ${message}`).join(' · '))
+        const nombresCampos = new Set(['eventCode', 'name', 'description', 'category', 'eventDate', 'minimumAge', 'venueCode'])
+        let mapeados = false
+        for (const [campo, mensaje] of Object.entries(error.details)) {
+          if (nombresCampos.has(campo)) {
+            setError(campo as keyof CrearEventoValues, { type: 'server', message: mensaje })
+            mapeados = true
+          }
+        }
+        setErrorApi(mapeados ? '' : mensajeError(error, 'No pudimos crear el evento.'))
       } else {
         setErrorApi(mensajeError(error, 'No pudimos crear el evento.'))
       }

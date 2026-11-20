@@ -1,13 +1,21 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { http, HttpResponse } from 'msw'
 import { useLocation } from 'react-router'
 import { RutaPorRol, RutaProtegida, SoloAnonimo } from './Guardas'
 import { autenticar, renderConProveedores } from '../test/utils'
+import { API } from '../test/handlers'
+import { server } from '../test/server'
 
 function LoginPrueba() {
   const location = useLocation()
-  const state = location.state as { desde?: { pathname?: string } } | null
-  return <h1>Login desde {state?.desde?.pathname ?? 'sin origen'}</h1>
+  const state = location.state as { desde?: { pathname?: string }; mensaje?: string } | null
+  return (
+    <>
+      <h1>Login desde {state?.desde?.pathname ?? 'sin origen'}</h1>
+      {state?.mensaje && <p>{state.mensaje}</p>}
+    </>
+  )
 }
 
 describe('guardas de ruta', () => {
@@ -25,6 +33,43 @@ describe('guardas de ruta', () => {
 
     expect(
       await screen.findByRole('heading', { name: 'Login desde /cuenta' }),
+    ).toBeInTheDocument()
+  })
+
+  it('informa expiración cuando /auth/me devuelve 401', async () => {
+    window.sessionStorage.setItem(
+      'pulsepass.session',
+      JSON.stringify({
+        accessToken: 'token-expirado',
+        expiresAt: Date.now() + 60_000,
+      }),
+    )
+    server.use(
+      http.get(`${API}/auth/me`, () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 401,
+            error: 'Unauthorized',
+            message: 'Token expirado',
+          },
+          { status: 401 },
+        ),
+      ),
+    )
+    renderConProveedores(
+      [
+        { path: '/login', element: <LoginPrueba /> },
+        {
+          element: <RutaProtegida />,
+          children: [{ path: '/cuenta', element: <h1>Mi cuenta</h1> }],
+        },
+      ],
+      { initialEntries: ['/cuenta'] },
+    )
+
+    expect(
+      await screen.findByText('Tu sesión expiró. Inicia sesión de nuevo.'),
     ).toBeInTheDocument()
   })
 

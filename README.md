@@ -115,3 +115,15 @@ npm test
 npm run lint
 npm run build
 ```
+
+Variables de entorno:
+
+- `PULSEPASS_API_URL`: destino del proxy de desarrollo de Vite; por defecto `http://localhost:8080`.
+- `VITE_API_BASE_URL`: base usada por el cliente HTTP; por defecto `/api`.
+
+Rutas principales:
+
+- `/eventos`, `/artistas`, `/sedes`
+- `/login`, `/registro`, `/cuenta`, `/mis-tickets`
+- `/staff/validacion`, `/staff/eventos/:eventCode/tickets`
+- `/admin/eventos`, `/admin/eventos/nuevo`, `/admin/eventos/:eventCode`
